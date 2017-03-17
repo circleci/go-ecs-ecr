@@ -20,22 +20,9 @@ deploy_cluster() {
         echo "Error updating service."
         return 1
     fi
-
-    # wait for older revisions to disappear
-    # not really necessary, but nice for demos
-    for attempt in {1..30}; do
-        if stale=$(aws ecs describe-services --cluster sample-webapp-cluster --services sample-webapp-service | \
-                       $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision\") | .taskDefinition"); then
-            echo "Waiting for stale deployments:"
-            echo "$stale"
-            sleep 5
-        else
-            echo "Deployed!"
-            return 0
-        fi
-    done
-    echo "Service update took too long."
-    return 1
+    
+    aws ecs wait services-stable --cluster sample-webapp-cluster --services sample-webapp-service
+    return $?
 }
 
 make_task_def(){
